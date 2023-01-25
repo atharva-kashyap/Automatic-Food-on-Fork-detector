@@ -28,7 +28,7 @@ def get_filepaths_sorted_by_ts(images_dir):
 
     return filepaths, ts_sorted
 
-def compute_mean_and_covariance(filepaths, ts_sorted, colorspace_conversion,
+def compute_mean_and_covariance(filepaths, ts_sorted, colorspace_conversion, pre_imshow_colorspace_conversion,
     start_i, end_i, diff=False, assume_channel_independence=False, desired_dimensions=[0,1,2]):
     """
     Computes the per-pixel mean and covariance for every image between
@@ -52,11 +52,28 @@ def compute_mean_and_covariance(filepaths, ts_sorted, colorspace_conversion,
         raw_img = cv.imread(filepath, cv.IMREAD_COLOR)
         # Colorspace conversion
         raw_img = cv.cvtColor(raw_img, colorspace_conversion)
+        # If one-channel, make that channel explicit.
+        # After this, img will be of shape (w, h, k) where k is the num channels
+        if len(raw_img.shape) == 2:
+            raw_img = np.expand_dims(raw_img, axis=2)
         raw_img = raw_img[:,:,desired_dimensions]
         # # Gaussian smoothening
         # raw_img = cv.GaussianBlur(raw_img, (7, 7), 0)
-        # cv.imshow("img", img.astype(np.uint8))
-        # cv.waitKey(0)
+        # # K-Means
+        # criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        # K = 5
+        # attempts = 5
+        # ret, label, center = cv.kmeans(raw_img.flatten().astype(np.float32), K, None, criteria, attempts, cv.KMEANS_PP_CENTERS)
+        # print(label.shape, center.shape)
+        # center = np.uint8(center)
+        # res = center[label.flatten()]
+        # raw_img = res.reshape((raw_img.shape))
+
+        if pre_imshow_colorspace_conversion is not None:
+            cv.imshow("raw_img", cv.cvtColor(raw_img.astype(np.uint8), pre_imshow_colorspace_conversion))
+        else:
+            cv.imshow("raw_img", raw_img.astype(np.uint8))
+        cv.waitKey(20)
         print(raw_img[220, 460])
 
         if diff:
@@ -64,14 +81,11 @@ def compute_mean_and_covariance(filepaths, ts_sorted, colorspace_conversion,
                 prev_raw_img = raw_img
                 continue
             val = cv.absdiff(raw_img, prev_raw_img)
+            if len(val.shape) == 2:
+                val = np.expand_dims(val, axis=2)
         else:
             val = raw_img
         val = val.astype(np.float64)
-
-        # If one-channel, make that channel explicit.
-        # After this, img will be of shape (w, h, k) where k is the num channels
-        if len(val.shape) == 2:
-            val = np.expand_dims(val, axis=2)
 
         # img_temp.append(img)
 
@@ -137,7 +151,7 @@ def get_per_pixel_difference(filepaths, ts_sorted, colorspace_conversion, pre_im
     out_end_i = ts_sorted.index(out_end_ts)
     out_n = out_end_i - out_start_i + 1
     out_mean, out_covariance = compute_mean_and_covariance(filepaths, ts_sorted,
-        colorspace_conversion, out_start_i, out_end_i, diff=True, assume_channel_independence=True,
+        colorspace_conversion, pre_imshow_colorspace_conversion, out_start_i, out_end_i, diff=True, assume_channel_independence=True,
         desired_dimensions=desired_dimensions)
     k = out_mean.shape[-1] # num channels
     out_mean_viz = out_mean.astype(np.uint8)
@@ -155,7 +169,10 @@ def get_per_pixel_difference(filepaths, ts_sorted, colorspace_conversion, pre_im
         img = cv.GaussianBlur(img, (7, 7), 0)
         for i, j in indices_to_mask:
             img[i, j, :] = 255
-        cv.imshow("img", cv.cvtColor(img, pre_imshow_colorspace_conversion))
+        if pre_imshow_colorspace_conversion is not None:
+            cv.imshow("img", cv.cvtColor(img, pre_imshow_colorspace_conversion))
+        else:
+            cv.imshow("img", img)
         cv.waitKey(0)
 
     # Compute the per-pixel Hotelling t-sq value
@@ -218,17 +235,43 @@ def get_per_pixel_difference(filepaths, ts_sorted, colorspace_conversion, pre_im
 
 if __name__ == "__main__":
     acquisition_trials = [ # (images_dir, colorspace_conversion, pre_imshow_colorspace_conversion, start skewering timestamp, first experience force bump timestamp, start lifting timestamp, end lifting timestamp, suffix)
+        # ########################################################################
+        # # Initial idea of just looking at the up-motion
+        # ########################################################################
+        # # ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
+        # #     cv.COLOR_RGB2GRAY, None, [0], 1667339146808778240, 1667339147622624768, 1667339148347074816, 1667339150241960448,
+        # #     "succesful_acquisition_wire_not_in_the_way"),
+        # # ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
+        # #     cv.COLOR_RGB2GRAY, None, [0], None, None, 1667339196380525056,1667339198420471296,
+        # #     "unsuccesful_acquisition_wire_in_the_way"),
+        # ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
+        #     cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0,1,2], 1667339146808778240, 1667339147622624768, 1667339148347074816, 1667339150241960448,
+        #     "succesful_acquisition_wire_not_in_the_way"),
+        # ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
+        #     cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0,1,2], None, None, 1667339196380525056,1667339198420471296,
+        #     "unsuccesful_acquisition_wire_in_the_way"),
+        # ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
+        #     cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0], 1667339146808778240, 1667339147622624768, 1667339148347074816, 1667339150241960448,
+        #     "succesful_acquisition_wire_not_in_the_way"),
+        # ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
+        #     cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0], None, None, 1667339196380525056,1667339198420471296,
+        #     "unsuccesful_acquisition_wire_in_the_way"),
+        ########################################################################
+        # Checking motion with broad background changes
+        ########################################################################
+        # # Checking from home position to above plate
+        # ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
+        #     cv.COLOR_RGB2GRAY, None, [0], None, None, 1667339137146388736, 1667339142118611456,
+        #     "initial_calibration_motion"),
+        # ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
+        #     cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0,1,2], None, None, 1667339137146388736, 1667339142118611456,
+        #     "initial_calibration_motion"),
+        # ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
+        #     cv.COLOR_RGB2HSV, None, [2], None, None, 1667339137146388736, 1667339142118611456,
+        #     "initial_calibration_motion"),
+        # # Checking motion to mouth
         ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
-            cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0,1,2], None, None, 1667339196380525056,1667339198420471296,
-            "unsuccesful_acquisition_wire_in_the_way"),
-        ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
-            cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0,1,2], 1667339146808778240, 1667339147622624768, 1667339148347074816, 1667339150241960448,
-            "succesful_acquisition_wire_not_in_the_way"),
-        ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
-            cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0], None, None, 1667339196380525056,1667339198420471296,
-            "unsuccesful_acquisition_wire_in_the_way"),
-        ("/Users/amaln/Documents/PRL/ada_amal/automated_bite_detection/2022_11_01_ada_picks_up_carrots_camera_compressed_ft_tf",
-            cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0], 1667339146808778240, 1667339147622624768, 1667339148347074816, 1667339150241960448,
+            cv.COLOR_RGB2HSV, cv.COLOR_HSV2BGR, [0,1,2], None, None, 1667339148347074816, 1667339158727013632,
             "succesful_acquisition_wire_not_in_the_way"),
     ]
 
