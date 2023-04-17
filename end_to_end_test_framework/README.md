@@ -1,0 +1,6 @@
+## Dependencies
+`python3 -m pip install numpy scipy scikit-learn opencv-python rosbags pyyaml`
+
+## TODOs
+- Right now, `analyze_results` only prints the accuracy, precision, recall, and F1 score. However, there are many more things we can expand it to do, including: (a) visualizing the different algorithms (e.g., in a barchart); (b) disaggregating accuracy across food items (e.g., so we know if our algorithm is really good at predicting pananas but really bad at predicting spinach); and (c) disaggregating accuracy across the action the robot used to pick up the bite (e.g., maybe our algorithm is really good for some actions because the fork is perpendicular to the table, but bad for actions where the fork has a pitch). We should expand `analyze_results` to have the data necessary to determine how to improve our algorithms.
+- We should save the actual results (e.g., as CSVs). That way, even if we decide later taht we want to produce a different visualization of the results, we can do that without running the algorithm again on all 1216 rosbags.
