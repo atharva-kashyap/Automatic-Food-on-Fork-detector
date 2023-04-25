@@ -2,6 +2,7 @@ import cv2
 from food_on_fork_detectors.FoodOnForkInterface import FoodOnForkInterface
 from food_on_fork_detectors.DummyClassifier import DummyClassifier
 from food_on_fork_detectors.RandomClassifier import RandomClassifier
+from food_on_fork_detectors.CVImageDiffTTestClassifier import CVImageDiffTTestClassifier
 import numpy as np
 import os
 from pathlib import Path
@@ -58,12 +59,17 @@ def analyze_results(
 
 if __name__ == "__main__":
     # Parameters -- change these as necessary
-    viz: bool = False  # Whether to visualize the rosbag images
+    viz: bool = True  # Whether to visualize the rosbag images
     # # Running on Amal's local machine
     # rss_experiments_folder_path: str = "/Users/amalnanavati/Documents/PRL/forktip_food_detection_cv/2023_RSS_experiments/"
     # Running on weebo
+    # rss_experiments_folder_path: str = (
+    #     "/home/ekgordon/Workspace/ada_ws/src/ada_feeding/data/"
+    # )
+
+    # Atharva's Rosbags location path
     rss_experiments_folder_path: str = (
-        "/home/ekgordon/Workspace/ada_ws/src/ada_feeding/data/"
+        "/home/atharvak/prl/forktipFoodDetection_ws/src/ethan_rosbags"
     )
 
     # Get all the rosbags in rss_experiments_folder_path along with their
@@ -79,9 +85,11 @@ if __name__ == "__main__":
         # True is the majority class, occuring in 0.5625 of the data
         # Hence, to be better than baseline, our classifier needs to have an
         # accuracy of > 0.5625 (and an F1 score of >= 0.72)
-        "MajorityClass": DummyClassifier(pred=True),
+        # "MajorityClass": DummyClassifier(pred=True),
         # # In expectation, RandomClassifier should have an accuracy of 0.50
         # "RandomClassifier(seed=%d)" % seed: RandomClassifier(seed=seed),
+        # CVImageDiffT-TestClassifier
+        "CVImageDiffTTestClassifier": CVImageDiffTTestClassifier(cv2.COLOR_RGB2HSV),
     }
 
     # Values to store predictions versus actual values
