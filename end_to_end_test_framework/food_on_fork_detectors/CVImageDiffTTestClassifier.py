@@ -46,7 +46,28 @@ class CVImageDiffTTestClassifier(FoodOnForkInterface):
 
         # Will need to convert to HSV
         # Convert the image from RGB to corresponding colorspace
+        cv2.imshow("img", img)
         raw_img = cv2.cvtColor(img, self.colorspace_conversion)
+        cv2.imshow("RawImg", raw_img)
+
+
+        # # Adding background elimination (removing green tape)
+        # # Green color in RGB = (165, 158, 73) and in HSV = (55, 55.8, 64.7) -> care about 55 only!
+        # # Valid range might be 45 to 65: check it out here: https://www.rapidtables.com/convert/color/hsv-to-rgb.html
+        # # Only care about H-channel:
+        # raw_img_h = raw_img[:, :, 0]
+        # # print(raw_img_h)
+        # green_lower = 45
+        # green_upper = 65
+        # for i in range(raw_img_h.shape[0]):
+        #     for j in range(raw_img_h.shape[1]):
+        #         # print(mean_h[i, j])
+        #         if green_lower <= raw_img_h[i, j] <= green_upper:
+        #             raw_img_h[i, j] = 0
+        # raw_img[:, :, 0] = raw_img_h
+        # cv2.imshow("RawImgAfterGreenRemoval_h", raw_img_h)
+        # cv2.imshow("RawImgAfterGreenRemoval", raw_img)
+        # cv2.waitKey(0)
 
         # To represent the third element (RGB) for the raw_img, we need to do the following
         # In this desired_dimensions are representative of 0, 1, 2, where 0 is Red, 1 is green, and 2 is Blue
@@ -93,6 +114,7 @@ class CVImageDiffTTestClassifier(FoodOnForkInterface):
         mean = self.sum_val / self.num_imgs
         cv2.imshow("mean", mean)
         cv2.waitKey(0)
+
 
         # Assuming channel independence:
         mean_sq = np.zeros((*mean.shape, mean.shape[-1]))
