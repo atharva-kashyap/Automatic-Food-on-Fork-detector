@@ -82,12 +82,12 @@ print("X", X.shape)
 print("y", y.shape)
 
 # Split the train and test set
-seed = 1692210087#int(time.time())#
+seed = int(time.time())#1692210087#
 print("seed", seed)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
 
 # Train a Naive Bayes classifier on the data
-clf = CategoricalNB(fit_prior=False)
+clf = CategoricalNB(min_categories=2)
 clf.fit(X_train, y_train)
 
 # Get the predictions on the train set
